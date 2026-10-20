@@ -147,10 +147,10 @@ That's it. Learners see a compliance scenario, type their answer, and the course
 
 > 10+ years designing learning experiences across AI/ML, compliance, and enterprise training.  
 > Builds AI-native eLearning tools at the intersection of instructional science and LLMs —  
-> grounded in ADDIE, SAM, Bloom's and Taxonomy.
+> grounded in ADDIE, SAM, and Bloom's Taxonomy.
 
 **Expertise:** Rise 360 · Storyline 360 · SCORM/xAPI · Claude API · Streamlit · Python  
-**Courses on:** Coursera · Udemy
+
 
 ---
 
