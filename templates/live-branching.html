@@ -1,0 +1,914 @@
+<title>Live Branching</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap">
+
+<style>
+/* ─── Design tokens ─────────────────────────────────────────────────────────
+   Layout: single-column card stack, max 720px, centered
+   Color: slate-cool neutrals, teal accent, semantic branch colors
+   Type: Lora for scenario prose, Inter for UI chrome
+───────────────────────────────────────────────────────────────────────────── */
+:root {
+  --bg:           #f4f6f8;
+  --surface:      #ffffff;
+  --surface-2:    #f0f3f6;
+  --border:       #dde2e8;
+  --fg:           #1a2332;
+  --fg-2:         #4a5568;
+  --fg-3:         #8896a8;
+  --accent:       #0d7f7f;
+  --accent-light: #e6f4f4;
+  --accent-hover: #0a6666;
+
+  --branch-a:     #0d7f4a;
+  --branch-a-bg:  #e6f7ef;
+  --branch-b:     #8a6800;
+  --branch-b-bg:  #fff8e1;
+  --branch-c:     #c0392b;
+  --branch-c-bg:  #fdecea;
+  --branch-d:     #6b0f1a;
+  --branch-d-bg:  #f9e7ea;
+
+  --radius:       12px;
+  --radius-sm:    8px;
+  --shadow:       0 2px 12px rgba(0,0,0,0.07);
+  --shadow-lg:    0 8px 32px rgba(0,0,0,0.12);
+
+  --font-prose:   'Lora', Georgia, serif;
+  --font-ui:      'Inter', system-ui, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:           #0f1520;
+    --surface:      #1a2332;
+    --surface-2:    #222e42;
+    --border:       #2d3a4f;
+    --fg:           #e8edf4;
+    --fg-2:         #9aacbf;
+    --fg-3:         #5a6e82;
+    --accent:       #1ab3b3;
+    --accent-light: #0d2e2e;
+    --accent-hover: #22cccc;
+
+    --branch-a:     #2dd68a;
+    --branch-a-bg:  #0a2a1a;
+    --branch-b:     #f5c842;
+    --branch-b-bg:  #2a2000;
+    --branch-c:     #ff6b6b;
+    --branch-c-bg:  #2a0a0a;
+    --branch-d:     #ff8fa3;
+    --branch-d-bg:  #2a0010;
+
+    --shadow:       0 2px 12px rgba(0,0,0,0.3);
+    --shadow-lg:    0 8px 32px rgba(0,0,0,0.5);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg:           #0f1520;
+  --surface:      #1a2332;
+  --surface-2:    #222e42;
+  --border:       #2d3a4f;
+  --fg:           #e8edf4;
+  --fg-2:         #9aacbf;
+  --fg-3:         #5a6e82;
+  --accent:       #1ab3b3;
+  --accent-light: #0d2e2e;
+  --accent-hover: #22cccc;
+
+  --branch-a:     #2dd68a;
+  --branch-a-bg:  #0a2a1a;
+  --branch-b:     #f5c842;
+  --branch-b-bg:  #2a2000;
+  --branch-c:     #ff6b6b;
+  --branch-c-bg:  #2a0a0a;
+  --branch-d:     #ff8fa3;
+  --branch-d-bg:  #2a0010;
+
+  --shadow:       0 2px 12px rgba(0,0,0,0.3);
+  --shadow-lg:    0 8px 32px rgba(0,0,0,0.5);
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-ui);
+  background: var(--bg);
+  color: var(--fg);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 32px;
+  min-height: 100%;
+}
+
+/* ─── Layout ─────────────────────────────────────────────────────────────── */
+.app {
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ─── Header ─────────────────────────────────────────────────────────────── */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.app-title {
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+}
+
+.progress-bar-wrap {
+  flex: 1;
+  min-width: 120px;
+  max-width: 240px;
+  height: 6px;
+  background: var(--border);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 99px;
+  transition: width 0.5s ease;
+}
+
+.score-badge {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-light);
+  padding: 4px 12px;
+  border-radius: 99px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ─── Card ────────────────────────────────────────────────────────────────── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.card-header {
+  padding: 20px 24px 0;
+}
+
+.card-body {
+  padding: 20px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.scenario-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+
+.scenario-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--fg);
+  margin-bottom: 0;
+  text-wrap: balance;
+}
+
+/* ─── Scenario prose ─────────────────────────────────────────────────────── */
+.scenario-context {
+  font-family: var(--font-prose);
+  font-size: 1rem;
+  line-height: 1.75;
+  color: var(--fg-2);
+  background: var(--surface-2);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: 16px 18px;
+}
+
+/* ─── Text input ─────────────────────────────────────────────────────────── */
+.input-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--fg-2);
+  margin-bottom: 8px;
+  display: block;
+}
+
+.response-input {
+  width: 100%;
+  min-height: 110px;
+  padding: 14px 16px;
+  font-family: var(--font-ui);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--fg);
+  background: var(--surface-2);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  resize: vertical;
+  transition: border-color 0.15s;
+  outline: none;
+}
+
+.response-input:focus {
+  border-color: var(--accent);
+}
+
+.response-input::placeholder {
+  color: var(--fg-3);
+}
+
+.char-count {
+  text-align: right;
+  font-size: 0.72rem;
+  color: var(--fg-3);
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Buttons ─────────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--font-ui);
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 12px 24px;
+  border-radius: var(--radius-sm);
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s, opacity 0.15s;
+  text-decoration: none;
+}
+
+.btn:active { transform: scale(0.98); }
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+}
+
+.btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+.btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.btn-secondary {
+  background: var(--surface-2);
+  color: var(--fg-2);
+  border: 1.5px solid var(--border);
+}
+
+.btn-secondary:hover { background: var(--border); }
+
+.btn-full { width: 100%; }
+
+/* ─── Loading state ──────────────────────────────────────────────────────── */
+.loading-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 40px 24px;
+  text-align: center;
+}
+
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.loading-text {
+  font-size: 0.9rem;
+  color: var(--fg-3);
+  font-style: italic;
+}
+
+/* ─── Consequence / feedback ──────────────────────────────────────────────── */
+.branch-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.branch-icon {
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+
+.branch-label { font-weight: 700; font-size: 1rem; }
+.branch-sublabel { font-size: 0.8rem; font-weight: 400; opacity: 0.75; }
+
+.branch-a-style { background: var(--branch-a-bg); color: var(--branch-a); border: 1px solid var(--branch-a); }
+.branch-b-style { background: var(--branch-b-bg); color: var(--branch-b); border: 1px solid var(--branch-b); }
+.branch-c-style { background: var(--branch-c-bg); color: var(--branch-c); border: 1px solid var(--branch-c); }
+.branch-d-style { background: var(--branch-d-bg); color: var(--branch-d); border: 1px solid var(--branch-d); }
+
+.feedback-prose {
+  font-family: var(--font-prose);
+  font-size: 1rem;
+  line-height: 1.75;
+  color: var(--fg-2);
+}
+
+.score-change {
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.score-pos { color: var(--branch-a); }
+.score-neg { color: var(--branch-c); }
+.score-zero { color: var(--fg-3); }
+
+.reasoning-block {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+}
+
+.reasoning-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+  margin-bottom: 6px;
+}
+
+.reasoning-text {
+  font-size: 0.87rem;
+  color: var(--fg-2);
+  line-height: 1.55;
+  font-style: italic;
+}
+
+/* ─── Debrief ─────────────────────────────────────────────────────────────── */
+.debrief-score-hero {
+  text-align: center;
+  padding: 24px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.debrief-score-num {
+  font-size: 3.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.debrief-score-label {
+  font-size: 0.85rem;
+  color: var(--fg-3);
+  margin-top: 4px;
+}
+
+.debrief-result-pill {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 4px 16px;
+  border-radius: 99px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.result-passed { background: var(--branch-a-bg); color: var(--branch-a); }
+.result-failed { background: var(--branch-c-bg); color: var(--branch-c); }
+
+.debrief-decisions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.debrief-decision-item {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.debrief-branch-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 800;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.dot-a { background: var(--branch-a-bg); color: var(--branch-a); }
+.dot-b { background: var(--branch-b-bg); color: var(--branch-b); }
+.dot-c { background: var(--branch-c-bg); color: var(--branch-c); }
+.dot-d { background: var(--branch-d-bg); color: var(--branch-d); }
+
+.debrief-item-content { flex: 1; min-width: 0; }
+.debrief-item-title { font-size: 0.88rem; font-weight: 600; color: var(--fg); margin-bottom: 3px; }
+.debrief-item-reason { font-size: 0.8rem; color: var(--fg-3); line-height: 1.45; font-style: italic; }
+
+.debrief-section-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+  margin-bottom: 10px;
+}
+
+/* ─── Error banner ────────────────────────────────────────────────────────── */
+.error-banner {
+  background: var(--branch-c-bg);
+  border: 1px solid var(--branch-c);
+  color: var(--branch-c);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ─── Transitions ─────────────────────────────────────────────────────────── */
+.view { animation: fadeIn 0.25s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .view { animation: none; }
+  .spinner { animation: none; border-top-color: var(--accent); }
+}
+
+/* ─── Responsive ─────────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  body { padding-block: 16px; }
+  .card-body, .card-header { padding-left: 16px; padding-right: 16px; }
+  .debrief-score-num { font-size: 2.5rem; }
+}
+</style>
+
+<div class="app" id="app">
+  <!-- Header -->
+  <div class="app-header">
+    <span class="app-title">Compliance Training</span>
+    <div class="progress-bar-wrap" role="progressbar" aria-label="Progress" aria-valuenow="0" aria-valuemax="100" id="progressBar">
+      <div class="progress-bar-fill" id="progressFill" style="width:0%"></div>
+    </div>
+    <span class="score-badge" id="scoreBadge">Score: 0</span>
+  </div>
+
+  <!-- Dynamic view renders here -->
+  <div id="viewContainer"></div>
+</div>
+
+<script>
+// ─── CONFIG ──────────────────────────────────────────────────────────────────
+// Replace with your deployed Cloudflare Worker URL
+// ── Replace this with your Streamlit Cloud app URL ──────────────────────────
+// Format: https://your-app-name.streamlit.app/proxy/judge
+// Get this after deploying to share.streamlit.io
+const PROXY_URL = "https://YOUR-APP-NAME.streamlit.app/proxy/judge";
+
+const PASS_SCORE = 60;   // out of 100
+const MAX_SCORE  = 100;
+
+// ─── SCENARIO DATA ───────────────────────────────────────────────────────────
+const SCENARIOS = [
+  {
+    id: "S1",
+    title: "Data Privacy Incident",
+    context: "A colleague sends you a spreadsheet containing 500 customer records — names, emails, addresses, and purchase history — asking you to clean it up and forward it to a marketing vendor. You are unsure whether this vendor has signed a data processing agreement with your company.",
+    rubric: "Best practice: verify the vendor is approved and has a signed DPA before sharing. Escalate to your data privacy officer or manager if uncertain. Do not share the data until confirmed.",
+    branches: {
+      A: { label: "Correct", icon: "✓", sublabel: "Policy-compliant approach" },
+      B: { label: "Partial",  icon: "◑", sublabel: "Minor gap in procedure" },
+      C: { label: "Incorrect", icon: "✗", sublabel: "Policy not followed" },
+      D: { label: "Violation", icon: "!", sublabel: "Serious compliance breach" }
+    }
+  },
+  {
+    id: "S2",
+    title: "Conflict of Interest",
+    context: "Your manager asks you to evaluate three vendor proposals for a new software contract. One of the vendors is your brother-in-law's company. Their proposal looks competitive on paper, and your manager is not aware of the relationship.",
+    rubric: "Best practice: immediately disclose the personal relationship to your manager and recuse yourself from the evaluation. Do not attempt to manage the conflict privately.",
+    branches: {
+      A: { label: "Correct",   icon: "✓", sublabel: "Disclosure made correctly" },
+      B: { label: "Partial",   icon: "◑", sublabel: "Partial disclosure" },
+      C: { label: "Incorrect", icon: "✗", sublabel: "Conflict not handled" },
+      D: { label: "Violation", icon: "!", sublabel: "Serious ethics breach" }
+    }
+  },
+  {
+    id: "S3",
+    title: "Information Security",
+    context: "You receive an email that appears to be from your IT department, asking you to click a link and verify your credentials because your account will be locked in 24 hours. The email address is it-support@company-helpdesk.net — not your company's usual domain.",
+    rubric: "Best practice: do not click the link. Report the email to your actual IT security team using their known contact details. Do not enter credentials on any external site.",
+    branches: {
+      A: { label: "Correct",   icon: "✓", sublabel: "Threat correctly identified" },
+      B: { label: "Partial",   icon: "◑", sublabel: "Cautious but incomplete" },
+      C: { label: "Incorrect", icon: "✗", sublabel: "Security risk taken" },
+      D: { label: "Violation", icon: "!", sublabel: "Credentials compromised" }
+    }
+  }
+];
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+const state = {
+  scenarioIndex: 0,
+  totalScore: 0,
+  decisions: [],
+  currentView: "scenario",
+  lastJudgment: null
+};
+
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+
+function currentScenario() {
+  return SCENARIOS[state.scenarioIndex];
+}
+
+function updateHeader() {
+  const total = SCENARIOS.length;
+  const done  = state.scenarioIndex;
+  const pct   = Math.round((done / total) * 100);
+  $("progressFill").style.width = pct + "%";
+  $("progressBar").setAttribute("aria-valuenow", pct);
+  $("scoreBadge").textContent = `Score: ${state.totalScore}`;
+}
+
+function render(html) {
+  const vc = $("viewContainer");
+  vc.innerHTML = html;
+  vc.querySelector(".view")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+// ─── postMessage REPORTING ─────────────────────────────────────────────────
+function postDecision(judgment, scenario) {
+  try {
+    window.parent.postMessage({
+      type: "BRANCH_DECISION",
+      payload: {
+        scenario_id:      scenario.id,
+        scenario_title:   scenario.title,
+        branch_id:        judgment.branch_id,
+        score_delta:      judgment.score_delta,
+        learner_response: state._lastResponse,
+        timestamp:        new Date().toISOString()
+      }
+    }, "*");
+  } catch(e) { /* silent */ }
+}
+
+function postCompletion() {
+  const passed = state.totalScore >= PASS_SCORE;
+  try {
+    window.parent.postMessage({
+      type: "COURSE_COMPLETE",
+      payload: {
+        total_score:       state.totalScore,
+        max_score:         MAX_SCORE,
+        pass_score:        PASS_SCORE,
+        completion_status: passed ? "passed" : "failed",
+        decisions:         state.decisions
+      }
+    }, "*");
+
+    // xAPI-shaped statement
+    window.parent.postMessage({
+      type: "XAPI_STATEMENT",
+      payload: {
+        verb:    "http://adlnet.gov/expapi/verbs/completed",
+        result: {
+          score:   { raw: state.totalScore, max: MAX_SCORE, scaled: state.totalScore / MAX_SCORE },
+          success: passed,
+          completion: true
+        },
+        context: {
+          decisions: state.decisions.map(d => ({
+            scenario_id: d.scenario_id,
+            branch_id:   d.branch_id
+          }))
+        }
+      }
+    }, "*");
+  } catch(e) { /* silent */ }
+}
+
+// ─── VIEWS ────────────────────────────────────────────────────────────────────
+function renderScenario() {
+  const s = currentScenario();
+  const num = state.scenarioIndex + 1;
+  const total = SCENARIOS.length;
+
+  render(`
+    <div class="card view">
+      <div class="card-header">
+        <p class="scenario-label">Scenario ${num} of ${total}</p>
+        <h2 class="scenario-title">${s.title}</h2>
+      </div>
+      <div class="card-body">
+        <blockquote class="scenario-context">${s.context}</blockquote>
+        <button class="btn btn-primary btn-full" id="btnRespond">
+          <span>How would you respond?</span>
+          <span aria-hidden="true">→</span>
+        </button>
+      </div>
+    </div>
+  `);
+
+  $("btnRespond").addEventListener("click", () => renderDecision());
+}
+
+function renderDecision() {
+  const s = currentScenario();
+  const num = state.scenarioIndex + 1;
+  const total = SCENARIOS.length;
+
+  render(`
+    <div class="card view">
+      <div class="card-header">
+        <p class="scenario-label">Scenario ${num} of ${total} — Your Response</p>
+        <h2 class="scenario-title">${s.title}</h2>
+      </div>
+      <div class="card-body">
+        <blockquote class="scenario-context">${s.context}</blockquote>
+        <div>
+          <label class="input-label" for="responseInput">
+            Describe what you would do in this situation
+          </label>
+          <textarea
+            class="response-input"
+            id="responseInput"
+            placeholder="Type your response here — be specific about the steps you would take and why…"
+            maxlength="600"
+            aria-required="true"
+          ></textarea>
+          <p class="char-count"><span id="charCount">0</span> / 600</p>
+        </div>
+        <div id="errorWrap"></div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <button class="btn btn-secondary" id="btnBack">← Back</button>
+          <button class="btn btn-primary" id="btnSubmit" disabled style="flex:1">
+            Submit Response
+          </button>
+        </div>
+      </div>
+    </div>
+  `);
+
+  const input  = $("responseInput");
+  const submit = $("btnSubmit");
+  const counter = $("charCount");
+
+  input.addEventListener("input", () => {
+    const len = input.value.trim().length;
+    counter.textContent = input.value.length;
+    submit.disabled = len < 15;
+  });
+
+  $("btnBack").addEventListener("click", renderScenario);
+  $("btnSubmit").addEventListener("click", () => submitResponse(input.value.trim()));
+  input.focus();
+}
+
+function renderLoading() {
+  render(`
+    <div class="card view">
+      <div class="loading-wrap">
+        <div class="spinner" role="status" aria-label="Evaluating response"></div>
+        <p class="loading-text">Analysing your response…</p>
+      </div>
+    </div>
+  `);
+}
+
+function renderConsequence(judgment) {
+  const s    = currentScenario();
+  const br   = s.branches[judgment.branch_id];
+  const num  = state.scenarioIndex + 1;
+  const total = SCENARIOS.length;
+  const isLast = state.scenarioIndex >= SCENARIOS.length - 1;
+
+  const branchClass = `branch-${judgment.branch_id.toLowerCase()}-style`;
+  const dotClass    = `dot-${judgment.branch_id.toLowerCase()}`;
+
+  const scoreDelta  = judgment.score_delta || 0;
+  const scoreClass  = scoreDelta > 0 ? "score-pos" : scoreDelta < 0 ? "score-neg" : "score-zero";
+  const scoreText   = scoreDelta > 0 ? `+${scoreDelta} points` : scoreDelta < 0 ? `${scoreDelta} points` : "No change";
+
+  render(`
+    <div class="card view">
+      <div class="card-header">
+        <p class="scenario-label">Scenario ${num} of ${total} — Feedback</p>
+        <h2 class="scenario-title">${s.title}</h2>
+      </div>
+      <div class="card-body">
+        <div class="branch-banner ${branchClass}">
+          <span class="branch-icon" aria-hidden="true">${br.icon}</span>
+          <div>
+            <div class="branch-label">${br.label}</div>
+            <div class="branch-sublabel">${br.sublabel}</div>
+          </div>
+          <span class="score-change ${scoreClass}" style="margin-left:auto;">${scoreText}</span>
+        </div>
+
+        <p class="feedback-prose">${judgment.feedback_text}</p>
+
+        ${judgment.reasoning ? `
+          <div class="reasoning-block">
+            <p class="reasoning-label">Evaluation rationale</p>
+            <p class="reasoning-text">${judgment.reasoning}</p>
+          </div>
+        ` : ""}
+
+        <button class="btn btn-primary btn-full" id="btnContinue">
+          ${isLast ? "View Results →" : "Next Scenario →"}
+        </button>
+      </div>
+    </div>
+  `);
+
+  $("btnContinue").addEventListener("click", () => {
+    if (isLast) {
+      renderDebrief();
+    } else {
+      state.scenarioIndex++;
+      updateHeader();
+      renderScenario();
+    }
+  });
+}
+
+function renderDebrief() {
+  const passed = state.totalScore >= PASS_SCORE;
+  const pct    = Math.round((state.totalScore / MAX_SCORE) * 100);
+
+  const decisionsHTML = state.decisions.map(d => {
+    const sc = SCENARIOS.find(s => s.id === d.scenario_id);
+    const br = sc?.branches[d.branch_id];
+    return `
+      <div class="debrief-decision-item">
+        <div class="debrief-branch-dot dot-${d.branch_id.toLowerCase()}">${d.branch_id}</div>
+        <div class="debrief-item-content">
+          <p class="debrief-item-title">${sc?.title || d.scenario_id}</p>
+          <p class="debrief-item-reason">${d.reasoning || br?.sublabel || ""}</p>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  render(`
+    <div class="card view">
+      <div class="debrief-score-hero">
+        <div class="debrief-score-num">${state.totalScore}<span style="font-size:1.5rem;color:var(--fg-3);">/${MAX_SCORE}</span></div>
+        <p class="debrief-score-label">${pct}% — pass mark is ${PASS_SCORE}</p>
+        <span class="debrief-result-pill ${passed ? "result-passed" : "result-failed"}">
+          ${passed ? "Passed" : "Not yet passed"}
+        </span>
+      </div>
+      <div class="card-body">
+        <div>
+          <p class="debrief-section-label">Decision summary</p>
+          <div class="debrief-decisions">${decisionsHTML}</div>
+        </div>
+        <button class="btn btn-secondary btn-full" id="btnRetry">Restart Module</button>
+      </div>
+    </div>
+  `);
+
+  postCompletion();
+
+  $("btnRetry").addEventListener("click", () => {
+    state.scenarioIndex = 0;
+    state.totalScore    = 0;
+    state.decisions     = [];
+    state.lastJudgment  = null;
+    updateHeader();
+    renderScenario();
+  });
+}
+
+// ─── API CALL ─────────────────────────────────────────────────────────────────
+async function submitResponse(response) {
+  if (!response || response.length < 15) return;
+
+  const s = currentScenario();
+  state._lastResponse = response;
+
+  renderLoading();
+
+  let judgment;
+
+  try {
+    const res = await fetch(PROXY_URL, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        scenario_context:  s.context,
+        scenario_rubric:   s.rubric,
+        learner_response:  response,
+        prior_decisions:   state.decisions.map(d => ({
+          scenario_id: d.scenario_id,
+          branch_id:   d.branch_id
+        }))
+      })
+    });
+
+    const data = await res.json();
+
+    // Worker may pass a fallback directly on error
+    if (data.fallback) {
+      judgment = data.fallback;
+    } else if (data.error) {
+      throw new Error(data.error);
+    } else {
+      judgment = data;
+    }
+
+    // Validate branch
+    if (!["A","B","C","D"].includes(judgment.branch_id)) {
+      judgment.branch_id = "C";
+    }
+
+  } catch (err) {
+    // Graceful fallback — never break the course
+    judgment = {
+      branch_id:     "C",
+      feedback_text: "There was a technical issue evaluating your response. Your answer has been recorded and your facilitator will review it separately.",
+      score_delta:   0,
+      reasoning:     "Technical fallback — response could not be evaluated automatically."
+    };
+  }
+
+  // Clamp score delta
+  judgment.score_delta = Math.max(-20, Math.min(20, judgment.score_delta || 0));
+
+  // Update state
+  state.totalScore = Math.max(0, Math.min(MAX_SCORE,
+    state.totalScore + judgment.score_delta
+  ));
+
+  state.decisions.push({
+    scenario_id: s.id,
+    branch_id:   judgment.branch_id,
+    reasoning:   judgment.reasoning || ""
+  });
+
+  state.lastJudgment = judgment;
+
+  // Report to LMS
+  postDecision(judgment, s);
+
+  updateHeader();
+  renderConsequence(judgment);
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+updateHeader();
+renderScenario();
+</script>
