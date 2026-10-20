@@ -6,8 +6,5 @@
 # It starts FastAPI (port 8000) in the background,
 # then starts Streamlit (port 8501) in the foreground.
 
-echo "Starting FastAPI judge on port 8000..."
-uvicorn api:app --host 0.0.0.0 --port 8000 &
-
-echo "Starting Streamlit on port 8501..."
-streamlit run app.py --server.port 8501 --server.address 0.0.0.0
+echo "Starting FastAPI judge on port 8501..."
+uvicorn api:app --host 0.0.0.0 --port 8501

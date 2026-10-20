@@ -4,7 +4,7 @@ Live Branching — FastAPI Judge Proxy
 Receives learner responses from Rise HTML,
 calls Claude API, returns branch judgment as JSON.
 
-Runs on port 8000 alongside Streamlit (port 8501).
+Runs on port 8501 — Streamlit Cloud's public port.
 """
 
 import os
@@ -12,7 +12,7 @@ import json
 import httpx
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
 from pydantic import BaseModel
 from typing import Optional
 
@@ -147,7 +147,21 @@ def validate_judgment(j: dict) -> dict:
 
 @app.get("/")
 async def health():
-    return {"status": "ok", "service": "live-branching-judge"}
+    api_key_set = bool(os.environ.get("ANTHROPIC_API_KEY", ""))
+    return HTMLResponse(content=f"""
+<!DOCTYPE html><html><head><title>Live Branching Judge</title>
+<style>body{{font-family:sans-serif;max-width:600px;margin:60px auto;padding:0 20px;background:#f8f9fa}}
+h1{{color:#1a1a2e}}code{{background:#e9ecef;padding:2px 8px;border-radius:4px;font-size:14px}}
+.ok{{color:#198754}}.warn{{color:#dc3545}}.box{{background:#fff;border:1px solid #dee2e6;border-radius:8px;padding:24px;margin:16px 0}}</style>
+</head><body>
+<h1>⚡ Live Branching Judge</h1>
+<p>Proxy service for Rise 360 — AI-powered compliance scenario branching.</p>
+<div class="box">
+  <p>API key: <strong class="{'ok'>✅ set' if api_key_set else 'warn'>❌ not set'}</strong></p>
+  <p>Judge endpoint: <code>POST /judge</code></p>
+</div>
+<p style="color:#6c757d;font-size:13px">Built by Sunil · <a href="https://github.com/linuxsunil/rise-ai-blocks">GitHub</a></p>
+</body></html>""")
 
 @app.post("/judge")
 async def judge(req: JudgeRequest):
