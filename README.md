@@ -157,6 +157,6 @@ That's it. Learners see a compliance scenario, type their answer, and the course
 <div align="center">
 
 *Built for [Articulate Rise 360](https://articulate.com/360/rise) · Powered by [Claude](https://anthropic.com)*  
-*A personal project — not affiliated with Fractal Analytics*
+*A personal project on a personal subscription*
 
 </div>
