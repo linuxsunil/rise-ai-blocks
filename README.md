@@ -139,7 +139,7 @@ That's it. Learners see a compliance scenario, type their answer, and the course
 **Sunil**  
 *Senior Instructional Designer*
 
-[![Location](https://img.shields.io/badge/📍-Tenkasi, Tamilnadu_India-orange?style=flat-square)]()
+[![Location](https://img.shields.io/badge/Location-Tenkasi,_Tamilnadu-orange?style=flat-square)]()
 [![GitHub](https://img.shields.io/badge/GitHub-linuxsunil-181717?style=flat-square&logo=github)](https://github.com/linuxsunil)
 [![Experience](https://img.shields.io/badge/Experience-10+_years_ID-green?style=flat-square)]()
 
