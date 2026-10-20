@@ -139,17 +139,15 @@ That's it. Learners see a compliance scenario, type their answer, and the course
 **Sunil**  
 *Senior Instructional Designer*
 
-[![Fractal Analytics](https://img.shields.io/badge/Company-Fractal_Analytics-1E3A8A?style=flat-square)](https://fractal.ai)
-[![Location](https://img.shields.io/badge/📍-Bengaluru,_India-orange?style=flat-square)]()
+[![Location](https://img.shields.io/badge/📍-Tenkasi, Tamilnadu_India-orange?style=flat-square)]()
 [![GitHub](https://img.shields.io/badge/GitHub-linuxsunil-181717?style=flat-square&logo=github)](https://github.com/linuxsunil)
 [![Experience](https://img.shields.io/badge/Experience-10+_years_ID-green?style=flat-square)]()
 
 </div>
 
 > 10+ years designing learning experiences across AI/ML, compliance, and enterprise training.  
-> Previously at **Thomson Reuters** and **NIIT Limited**.  
 > Builds AI-native eLearning tools at the intersection of instructional science and LLMs —  
-> grounded in ADDIE, SAM, Bloom's Taxonomy, and evidence-based design (Ruth Colvin Clark).
+> grounded in ADDIE, SAM, Bloom's and Taxonomy.
 
 **Expertise:** Rise 360 · Storyline 360 · SCORM/xAPI · Claude API · Streamlit · Python  
 **Courses on:** Coursera · Udemy
